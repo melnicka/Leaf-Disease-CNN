@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from PIL.ImageFile import ImageFile
     from numpy.typing.npt import ArrayLike
-    from .config import DataConfig
+    from .config import Config
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -41,10 +41,10 @@ class LeafImageDataset(Dataset):
 
         return image, label
 
-def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
-    if cfg.grayscale is None:
+def load_data(cfg: Config) -> tuple[DataLoader, ...]:
+    if cfg.data.grayscale is None:
         train_transform = v2.Compose([
-            v2.Resize(cfg.resize),
+            v2.Resize(cfg.data.resize),
             v2.RandomHorizontalFlip(p=0.5),
             v2.ColorJitter(
                 brightness=0.1,
@@ -57,8 +57,8 @@ def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
             v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
         ])
 
-        val_transform = v2.Compose([
-            v2.Resize(cfg.resize),
+        eval_transform = v2.Compose([
+            v2.Resize(cfg.data.resize),
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
@@ -66,7 +66,7 @@ def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
         ])
     else:
         train_transform = v2.Compose([
-            v2.Resize(cfg.resize),
+            v2.Resize(cfg.data.resize),
             v2.RandomHorizontalFlip(p=0.5),
             v2.Grayscale(num_output_channels=1),
             v2.ColorJitter(
@@ -78,36 +78,65 @@ def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
             v2.Normalize([0.5], [0.5])
         ])
 
-        val_transform = v2.Compose([
-            v2.Resize(cfg.resize),
+        eval_transform = v2.Compose([
+            v2.Resize(cfg.data.resize),
             v2.Grayscale(num_output_channels=1),
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize([0.5], [0.5])
         ])
 
-    samples, labels, class_names, class_to_idx = collect_samples(cfg.root_dir)
+    samples, labels, class_names, class_to_idx = collect_samples(cfg.data.root_dir)
     split = make_splits(
             samples,
             labels,
-            cfg.test_size,
-            cfg.val_size,
-            cfg.random_state
+            cfg.data.test_size,
+            cfg.data.val_size,
+            cfg.data.random_state
     )
 
-    if cfg.val_size is None:
+    if cfg.data.val_size is None:
         X_train, X_test, y_train, y_test = split 
     else:
         X_train, X_val, X_test, y_train, y_val, y_test = split
-        val_dataset = LeafImageDataset(X_val, y_val, class_names, class_to_idx, val_transform)
-        val_loader = DataLoader(val_dataset, cfg.batch_size, shuffle=False)
+        val_dataset = LeafImageDataset(
+                X_val,
+                y_val,
+                class_names,
+                class_to_idx,
+                eval_transform
+        )
+        val_loader = DataLoader(
+                val_dataset,
+                cfg.data.batch_size,
+                shuffle=False
+        )
+    train_dataset = LeafImageDataset(
+            X_train,
+            y_train,
+            class_names,
+            class_to_idx,
+            train_transform
+    )
+    test_dataset = LeafImageDataset(
+            X_test,
+            y_test,
+            class_names,
+            class_to_idx,
+            eval_transform
+    )
+    train_loader = DataLoader(
+            train_dataset,
+            cfg.data.batch_size,
+            shuffle=True,
+    )
+    test_loader = DataLoader(
+            test_dataset,
+            cfg.data.batch_size,
+            shuffle=False
+    )
 
-    train_dataset = LeafImageDataset(X_train, y_train, class_names, class_to_idx, train_transform)
-    test_dataset = LeafImageDataset(X_test, y_test, class_names, class_to_idx, val_transform)
-    train_loader = DataLoader(train_dataset, cfg.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, cfg.batch_size, shuffle=False)
-
-    if cfg.val_size is None:
+    if cfg.data.val_size is None:
         return train_loader, test_loader
 
     return train_loader, val_loader, test_loader
@@ -160,6 +189,9 @@ def make_splits(
             )
 
     return X_train, X_val, X_test, y_train, y_val, y_test
+
+
+
 
 
 
