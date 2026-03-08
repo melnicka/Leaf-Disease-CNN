@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from typing import TYPE_CHECKING
-from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 if TYPE_CHECKING:
     from config.config import Config
@@ -105,3 +105,29 @@ def train(
         writer.add_scalars('val/f1', val_f1), step
         step += 1
 
+def score(
+        cfg: Config,
+        model: nn.Module,
+        test_loader: DataLoader,
+) -> tuple[float, float, float]:
+    y_true, y_pred = [], []
+    model.eval()
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            preds = model(X_batch.to(cfg.device))
+
+            preds = torch.argmax(preds, dim=1).cpu()
+            y_pred.extend(preds.tolist())
+            y_true.extend(y_batch.cpu().tolist())
+
+    accuracy = accuracy_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred, average=None)
+    precision = precision_score(y_true, y_pred, average=None)
+    recall = recall_score(y_true, y_pred, average=None)
+    
+    idx_to_class = test_loader.dataset.idx_to_class
+    f1 = {idx_to_class[i]: score for i, score in enumerate(f1)}
+    precision = {idx_to_class[i]: score for i, score in enumerate(precision)}
+    recall = {idx_to_class[i]: score for i, score in enumerate(recall)}
+
+    return accuracy, precision, recall, f1

@@ -42,7 +42,7 @@ class LeafImageDataset(Dataset):
         return image, label
 
 def load_data(cfg: Config) -> tuple[DataLoader, ...]:
-    if cfg.data.grayscale is None:
+    if not cfg.data.grayscale:
         train_transform = v2.Compose([
             v2.Resize(cfg.data.resize),
             v2.RandomHorizontalFlip(p=0.5),
@@ -92,7 +92,7 @@ def load_data(cfg: Config) -> tuple[DataLoader, ...]:
             labels,
             cfg.data.test_size,
             cfg.data.val_size,
-            cfg.data.random_state
+            cfg.random_state
     )
 
     if cfg.data.val_size is None:

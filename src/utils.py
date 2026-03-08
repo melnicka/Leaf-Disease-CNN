@@ -1,6 +1,7 @@
 from collections import Counter
 import numpy as np
 import torch
+import random
 from .model import LeafCNN
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -33,3 +34,12 @@ def training_setup(cfg: Config):
     criterion = CrossEntropyLoss(weight=class_weights)
 
     return model, optimizer, criterion, scheduler
+
+def set_random_state(cfg: Config):
+    np.random.seed(cfg.random_state)
+    random.seed(cfg.random_state)
+    torch.manual_seed(cfg.random_state)
+    torch.cuda.manual_seed_all(cfg.random_state)
+
+
+

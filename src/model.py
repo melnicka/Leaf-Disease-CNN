@@ -17,18 +17,18 @@ class LeafCNN(nn.Module):
 def _build_conv_blocks(cfg: Config):
     conv_list = []
 
-    in_channel = cfg.model.in_channels
-    for out_channel in cfg.model.out_channels:
+    in_channels = 1 if cfg.data.grayscale else 3
+    for out_channels in cfg.model.out_channels:
         conv_list.append(
                 nn.Conv2d(
-                    in_channel,
-                    out_channel,
+                    in_channels,
+                    out_channels,
                     kernel_size=cfg.model.conv_kernel_size
                 )
             )
         conv_list.append(nn.ReLU())
         conv_list.append(nn.MaxPool2d(cfg.model.pool_kernel_size))
-        in_channel = out_channel
+        in_channels = out_channels
 
     return nn.Sequential(*conv_list)
 
