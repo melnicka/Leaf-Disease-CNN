@@ -1,8 +1,8 @@
-from src.dataset import LeafImageDataset, make_splits, collect_samples
+from src.dataset import load_data
+from src.config import DataConfig
 
+# testing
 if __name__ == '__main__':
-    samples, labels, _, _ = collect_samples()
-    X_train, X_val, X_test, y_train, y_val, y_test = make_splits(samples, labels)
-
-    dataset = LeafImageDataset(samples, labels)
-    print(dataset[1899])
+    data_cfg = DataConfig()
+    train_loader, val_loader, test_loader = load_data(data_cfg)
+    print(train_loader)

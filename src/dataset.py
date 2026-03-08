@@ -8,13 +8,24 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from PIL.ImageFile import ImageFile
     from numpy.typing.npt import ArrayLike
+    from .config import DataConfig
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 class LeafImageDataset(Dataset):
-    def __init__(self, samples, labels, transform=None):
+    def __init__(
+            self,
+            samples: ArrayLike[str],
+            labels: ArrayLike[int],
+            class_names: ArrayLike[str],
+            class_to_idx: dict[str, int],
+            transform=None
+    ):
         self.samples = samples
         self.labels = labels
+        self.class_names = class_names,
+        self.class_to_idx = class_to_idx
+        self.idx_to_class = {i:c for c, i in class_to_idx.items()}
         self.transform = transform
     
     def __len__(self):
@@ -29,7 +40,68 @@ class LeafImageDataset(Dataset):
 
         return image, label
 
-def collect_samples(root_dir: str = 'data') -> tuple[list[str], list[int], float, float]:
+def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
+    if cfg.grayscale is not None:
+        train_transform = v2.Compose([
+            v2.Resize(cfg.resize),
+            v2.RandomHorizontalFlip(p=0.5),
+            v2.ColorJitter(
+                brightness=0.1,
+                contrast=0.1,
+                saturation=0.1,
+            ),
+            v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        ])
+
+        val_transform = v2.Compose([
+            v2.Resize(cfg.resize),
+            v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        ])
+    else:
+        train_transform = v2.Compose([
+            v2.Resize(cfg.resize),
+            v2.RandomHorizontalFlip(p=0.5),
+            v2.Grayscale(num_output_channels=1),
+            v2.ColorJitter(
+                brightness=0.1,
+                contrast=0.1,
+            ),
+            v2.Normalize([0.5], [0.5])
+        ])
+
+        val_transform = v2.Compose([
+            v2.Resize(cfg.resize),
+            v2.Grayscale(num_output_channels=1),
+            v2.Normalize([0.5], [0.5])
+        ])
+
+    samples, labels, class_names, class_to_idx = collect_samples(cfg.root_dir)
+    split = make_splits(
+            samples,
+            labels,
+            cfg.test_size,
+            cfg.val_size,
+            cfg.random_state
+    )
+
+    if cfg.val_size is None:
+        X_train, X_test, y_train, y_test = split 
+    else:
+        X_train, X_val, X_test, y_train, y_val, y_test = split
+        val_dataset = LeafImageDataset(X_val, y_val, class_names, class_to_idx, val_transform)
+        val_loader = DataLoader(val_dataset, cfg.batch_size, shuffle=False)
+
+    train_dataset = LeafImageDataset(X_train, y_train, class_names, class_to_idx, train_transform)
+    test_dataset = LeafImageDataset(X_test, y_test, class_names, class_to_idx, val_transform)
+    train_loader = DataLoader(train_dataset, cfg.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, cfg.batch_size, shuffle=False)
+
+    if cfg.val_size is None:
+        return train_loader, test_loader
+
+    return train_loader, val_loader, test_loader
+
+def collect_samples(root_dir: str = 'data') -> tuple[list[str], list[int], list[str], dict]:
     root = Path(root_dir)
     class_names = sorted([d.name for d in root.iterdir() if d.is_dir()])
     class_to_idx = {name: i for i, name in enumerate(class_names)}
@@ -46,12 +118,13 @@ def collect_samples(root_dir: str = 'data') -> tuple[list[str], list[int], float
     return samples, labels, class_names, class_to_idx
 
 def make_splits(
-        samples: ArrayLike[str],
-        labels: ArrayLike[int],
+        samples: list[str],
+        labels: list[int],
         test_size: float = 0.15,
-        val_size: float = 0.1,
+        val_size: float | None = 0.1,
         random_state: int = 2137
-        ):
+) -> tuple[ArrayLike[str], ...]:
+
     if 1 - test_size - val_size <= 0:
         raise ValueError("Ivalid train-test-split ratio.")
 
@@ -61,7 +134,9 @@ def make_splits(
             test_size=test_size,
             stratify=labels,
             random_state=random_state
-            )
+    )
+    if val_size is None:
+        return X_trainval, X_test, y_trainval, y_test
     
     val_size = val_size / (1 - test_size)
     X_train, X_val, y_train, y_val = train_test_split(
@@ -73,8 +148,6 @@ def make_splits(
             )
 
     return X_train, X_val, X_test, y_train, y_val, y_test
-
-
 
 
 
