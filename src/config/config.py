@@ -10,4 +10,11 @@ class DataConfig:
     grayscale: bool = True
     random_state: int = 2137
 
+@dataclass
+class ModelConfig:
+    in_channels: int = 1 
+    out_channels: tuple[int, ...] = (31, 34, 128)
+    out_dense_hidden_layers: tuple[int, ...] = (512, 256, 64)
+    conv_kernel_size: int = 3 
+    pool_kernel_size: int = 2
 

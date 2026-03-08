@@ -1,5 +1,6 @@
 from pathlib import Path
 from PIL import Image
+import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
@@ -23,7 +24,7 @@ class LeafImageDataset(Dataset):
     ):
         self.samples = samples
         self.labels = labels
-        self.class_names = class_names,
+        self.class_names = class_names
         self.class_to_idx = class_to_idx
         self.idx_to_class = {i:c for c, i in class_to_idx.items()}
         self.transform = transform
@@ -32,7 +33,7 @@ class LeafImageDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, index) -> tuple[ImageFile, int]:
-        image = Image.open(self.samples[index])
+        image = Image.open(self.samples[index]).convert("RGB")
         label = self.labels[index]
         
         if self.transform is not None:
@@ -41,7 +42,7 @@ class LeafImageDataset(Dataset):
         return image, label
 
 def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
-    if cfg.grayscale is not None:
+    if cfg.grayscale is None:
         train_transform = v2.Compose([
             v2.Resize(cfg.resize),
             v2.RandomHorizontalFlip(p=0.5),
@@ -50,12 +51,18 @@ def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
                 contrast=0.1,
                 saturation=0.1,
             ),
-            v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+            
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
         ])
 
         val_transform = v2.Compose([
             v2.Resize(cfg.resize),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
             v2.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+            
         ])
     else:
         train_transform = v2.Compose([
@@ -66,12 +73,16 @@ def load_data(cfg: DataConfig) -> tuple[DataLoader, ...]:
                 brightness=0.1,
                 contrast=0.1,
             ),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
             v2.Normalize([0.5], [0.5])
         ])
 
         val_transform = v2.Compose([
             v2.Resize(cfg.resize),
             v2.Grayscale(num_output_channels=1),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
             v2.Normalize([0.5], [0.5])
         ])
 
@@ -125,8 +136,9 @@ def make_splits(
         random_state: int = 2137
 ) -> tuple[ArrayLike[str], ...]:
 
-    if 1 - test_size - val_size <= 0:
-        raise ValueError("Ivalid train-test-split ratio.")
+    effective_val_size = 0.0 if val_size is None else val_size
+    if 1 - test_size - effective_val_size <= 0:
+        raise ValueError("Invalid train-test-split ratio.")
 
     X_trainval, X_test, y_trainval, y_test = train_test_split(
             samples,
