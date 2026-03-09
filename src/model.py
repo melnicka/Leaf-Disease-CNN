@@ -34,11 +34,11 @@ def _build_conv_blocks(cfg: Config):
 
 def _build_dense_layers(cfg: Config, num_classes: int):
     dense_list = []
-    dense_list.append(nn.LazyLinear(cfg.model.out_dense_hidden_layers[0]))
+    dense_list.append(nn.LazyLinear(cfg.model.dense_hidden_dims[0]))
     dense_list.append(nn.ReLU())
 
-    in_features = cfg.model.out_dense_hidden_layers[0]
-    for out_features in cfg.model.out_dense_hidden_layers[1:]:
+    in_features = cfg.model.dense_hidden_dims[0]
+    for out_features in cfg.model.dense_hidden_dims[1:]:
         dense_list.append(nn.Linear(in_features, out_features))
         dense_list.append(nn.ReLU())
         in_features = out_features

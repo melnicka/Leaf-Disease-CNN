@@ -2,16 +2,18 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from typing import TYPE_CHECKING
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, confusion_matrix
 
 if TYPE_CHECKING:
     from config.config import Config
     from torch.utils.data import DataLoader
     from torch.utils.tensorboard import SummaryWriter
     from torch.optim.lr_scheduler import ReduceLROnPlateau
+    from numpy import _Array
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train_one_epoch(
-        cfg: Config,
         model: nn.Module,
         train_loader: DataLoader,
         optimizer: optim.Optimizer,
@@ -23,7 +25,7 @@ def train_one_epoch(
 
     for X_batch, y_batch in train_loader:
         optimizer.zero_grad()
-        X_batch, y_batch = X_batch.to(cfg.device), y_batch.to(cfg.device)
+        X_batch, y_batch = X_batch.to(DEVICE), y_batch.to(DEVICE)
 
         y_pred = model(X_batch)
         loss = criterion(y_pred, y_batch)
@@ -39,7 +41,6 @@ def train_one_epoch(
     return running_loss / len(train_loader), running_correct / total_samples
 
 def eval(
-        cfg: Config,
         model: nn.Module,
         val_loader: DataLoader,
         criterion: nn.Module
@@ -49,7 +50,7 @@ def eval(
     model.eval()
     with torch.no_grad():
         for X_batch, y_batch in val_loader:
-            X_batch, y_batch = X_batch.to(cfg.device), y_batch.to(cfg.device)
+            X_batch, y_batch = X_batch.to(DEVICE), y_batch.to(DEVICE)
             preds = model(X_batch)
             running_val_loss += criterion(preds, y_batch)
 
@@ -83,13 +84,12 @@ def train(
         print(f"Current learning rate: {scheduler.get_last_lr()}")
         writer.add_scalar('train/lr', scheduler.get_last_lr()[0], step)
         train_loss, train_acc = train_one_epoch(
-                cfg,
                 model,
                 train_loader,
                 optimizer,
                 criterion
         )
-        val_loss, val_acc, val_f1 = eval(cfg, model, val_loader, criterion)
+        val_loss, val_acc, val_f1 = eval(model, val_loader, criterion)
         scheduler.step(val_loss)
         print(f"Train loss: {train_loss:.4f}")
         print(f"Train accuracy: {100*train_acc:.2f}%")
@@ -106,15 +106,14 @@ def train(
         step += 1
 
 def score(
-        cfg: Config,
         model: nn.Module,
         test_loader: DataLoader,
-) -> tuple[float, float, float]:
+) -> tuple[float, dict, dict, dict, _Array]:
     y_true, y_pred = [], []
     model.eval()
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
-            preds = model(X_batch.to(cfg.device))
+            preds = model(X_batch.to(DEVICE))
 
             preds = torch.argmax(preds, dim=1).cpu()
             y_pred.extend(preds.tolist())
@@ -129,5 +128,14 @@ def score(
     f1 = {idx_to_class[i]: score for i, score in enumerate(f1)}
     precision = {idx_to_class[i]: score for i, score in enumerate(precision)}
     recall = {idx_to_class[i]: score for i, score in enumerate(recall)}
+    cm = confusion_matrix(y_true, y_pred)
 
-    return accuracy, precision, recall, f1
+    f1_fmt = {k: f"{v:.4f}" for k, v in f1.items()}
+    print(f"Validation F1 score: {f1_fmt}")
+    precision_fmt = {k: f"{v:.4f}" for k, v in precision.items()}
+    print(f"Precision score: {precision_fmt}")
+    recall_fmt = {k: f"{v:.4f}" for k, v in recall.items()}
+    print(f"Recall score: {recall_fmt}")
+    print(f"Confusion Matrix: {cm}")
+
+    return accuracy, precision, recall, f1, cm
