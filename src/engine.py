@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from typing import TYPE_CHECKING
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, confusion_matrix
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 if TYPE_CHECKING:
-    from config.config import Config
+    from config_schema import Config
     from torch.utils.data import DataLoader
     from torch.utils.tensorboard import SummaryWriter
     from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -128,7 +128,6 @@ def score(
     f1 = {idx_to_class[i]: score for i, score in enumerate(f1)}
     precision = {idx_to_class[i]: score for i, score in enumerate(precision)}
     recall = {idx_to_class[i]: score for i, score in enumerate(recall)}
-    cm = confusion_matrix(y_true, y_pred)
 
     f1_fmt = {k: f"{v:.4f}" for k, v in f1.items()}
     print(f"Validation F1 score: {f1_fmt}")
@@ -136,6 +135,5 @@ def score(
     print(f"Precision score: {precision_fmt}")
     recall_fmt = {k: f"{v:.4f}" for k, v in recall.items()}
     print(f"Recall score: {recall_fmt}")
-    print(f"Confusion Matrix: {cm}")
 
-    return accuracy, precision, recall, f1, cm
+    return accuracy, precision, recall, f1

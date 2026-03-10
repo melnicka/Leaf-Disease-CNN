@@ -1,21 +1,53 @@
-from collections import Counter
 import numpy as np
 import torch
 import random
+import argparse
+from collections import Counter
 from .model import LeafCNN
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.nn import CrossEntropyLoss
 from omegaconf import OmegaConf
-from .config.config import Config
+from .config_schema import Config
 
-def load_config(yaml_cfg_path: str = "src/config/default.yaml") -> Config:
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    train_parser = subparsers.add_parser("train")
+    pred_parser = subparsers.add_parser("predict")
+
+    train_parser.add_argument("name", help="Experiment name")
+    train_parser.add_argument(
+            "--config",
+            nargs="+",
+            help="YAML config files. Uses base.yaml config by default."
+            )
+
+    # TODO
+    pred_parser.add_argument("model", help="Path to the trained model")
+    pred_parser.add_argument(
+            "input_data",
+            nargs="+",
+            help="List of files or a directory with input images."
+            )
+
+    args = parser.parse_args()
+    return args
+
+def load_config(yaml_cfg_paths, base="configs/base.yaml") -> Config:
     schema = OmegaConf.structured(Config)
-    yaml_cfg = OmegaConf.load(yaml_cfg_path)
-    cfg = OmegaConf.merge(schema, yaml_cfg)
-    cfg = OmegaConf.to_object(cfg)
+    yaml_configs = []
+    base_cfg = OmegaConf.load(base)
+    if not yaml_cfg_paths:
+        cfg = OmegaConf.merge(schema, base_cfg)
+        return OmegaConf.to_object(cfg)
 
-    return cfg
+    for conf_path in yaml_cfg_paths:
+        yaml_configs.append(OmegaConf.load(conf_path))
+    cfg = OmegaConf.merge(schema, base_cfg, *yaml_configs)
+
+    return OmegaConf.to_object(cfg)
 
 def training_setup(cfg: Config) -> tuple[LeafCNN, AdamW, CrossEntropyLoss, ReduceLROnPlateau]:
     model = LeafCNN(cfg)

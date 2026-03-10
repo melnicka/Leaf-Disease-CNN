@@ -1,29 +1,22 @@
+from src.utils import load_config, parse_args
+from src.builder import train_model
+from src.model import LeafCNN
 import torch
-from src.engine import train, score, DEVICE
-from src.utils import training_setup, set_random_state, load_config
-from src.dataset import load_data
-from torch.utils.tensorboard import SummaryWriter
 
 # testing
 if __name__ == '__main__':
-    cfg = load_config()
-    set_random_state(cfg)
-    train_loader, val_loader, test_loader = load_data(cfg)
-    writer = SummaryWriter(log_dir='src/runs')
-    model, optimizer, criterion, scheduler  = training_setup(cfg)
-    model.to(DEVICE)
+    args = parse_args()
 
-    train(
-            cfg,
-            model,
-            train_loader,
-            val_loader,
-            optimizer,
-            criterion,
-            scheduler,
-            writer
-    )
+    if args.command == 'train':
+        cfg = load_config(args.config)
+        train_model(args.name, cfg)
 
-    test_metrics = score(model, test_loader) 
-    torch.save(model.state_dict(), "models/cnn0.pth")
-    
+    elif args.command == 'predict':
+        model = LeafCNN
+        state_dict = torch.load(args.model)
+        model.load_state_dict(state_dict)
+
+        # TODO: implemet predicting from the user input
+        
+
+

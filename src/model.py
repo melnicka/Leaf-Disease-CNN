@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn 
-from .config.config import Config
+from .config_schema import Config
 
 class LeafCNN(nn.Module):
     def __init__(self, cfg: Config):

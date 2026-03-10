@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from PIL.ImageFile import ImageFile
     from numpy.typing.npt import ArrayLike
-    from .config import Config
+    from .config_schema import Config
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
