@@ -137,3 +137,17 @@ def score(
     print(f"Recall score: {recall_fmt}")
 
     return accuracy, precision, recall, f1
+
+def predict(model: nn.Module, pred_loader: DataLoader):
+    y_pred = []
+    model.eval()
+    with torch.no_grad():
+        for x_batch in pred_loader:
+            preds = model(x_batch.to(DEVICE))
+            preds = torch.argmax(preds, dim=1)
+            y_pred.extend(preds.cpu().tolist())
+
+    
+
+    return y_pred
+

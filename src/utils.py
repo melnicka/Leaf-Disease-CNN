@@ -19,17 +19,26 @@ def parse_args() -> argparse.Namespace:
 
     train_parser.add_argument("name", help="Experiment name")
     train_parser.add_argument(
-            "--config",
+            "--config", "-c",
             nargs="+",
             help="YAML config files. Uses base.yaml config by default."
             )
 
-    # TODO
-    pred_parser.add_argument("model", help="Path to the trained model")
+    pred_parser.add_argument("model_name", help="Trained model name.")
     pred_parser.add_argument(
             "input_data",
             nargs="+",
-            help="List of files or a directory with input images."
+            help="List of files and/or directories with input images."
+            )
+    pred_parser.add_argument(
+            "--root_dir", "-r",
+            default="runs",
+            help="Change the directory where the model will be searched."
+            )
+
+    pred_parser.add_argument(
+            "--save", "-s",
+            help="The target path to save the predictions."
             )
 
     args = parser.parse_args()

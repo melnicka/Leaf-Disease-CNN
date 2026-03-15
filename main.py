@@ -1,9 +1,6 @@
 from src.utils import load_config, parse_args
-from src.builder import train_model
-from src.model import LeafCNN
-import torch
+from src.builder import train_model, make_predictions
 
-# testing
 if __name__ == '__main__':
     args = parse_args()
 
@@ -12,11 +9,18 @@ if __name__ == '__main__':
         train_model(args.name, cfg)
 
     elif args.command == 'predict':
-        model = LeafCNN
-        state_dict = torch.load(args.model)
-        model.load_state_dict(state_dict)
+        preds = make_predictions(
+                args.model_name,
+                args.input_data,
+                args.root_dir
+        )
+        print(preds)
 
-        # TODO: implemet predicting from the user input
+    if args.save:
+        with open(args.save, "w") as f:
+            f.write(str(preds))
+
+
         
 
 
