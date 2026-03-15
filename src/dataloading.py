@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 import torch
 from sklearn.model_selection import train_test_split
@@ -112,7 +113,7 @@ def load_data(cfg: Config) -> tuple[DataLoader, ...]:
 
     return train_loader, val_loader, test_loader
 
-def load_inference_data(data_paths: str, cfg: Config):
+def load_inference_data(data_paths: str, cfg: Config) -> DataLoader:
     if not cfg.data.grayscale:
         transform = v2.Compose([
             v2.Resize(cfg.data.resize),

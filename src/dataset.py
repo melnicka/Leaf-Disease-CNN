@@ -1,3 +1,4 @@
+from __future__ import annotations
 from PIL import Image
 from torch.utils.data import Dataset
 from typing import TYPE_CHECKING
@@ -5,8 +6,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from PIL.ImageFile import ImageFile
     from numpy.typing.npt import ArrayLike
-
-IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 class LeafImageDataset(Dataset):
     def __init__(
