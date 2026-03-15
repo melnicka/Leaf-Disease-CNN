@@ -3,6 +3,12 @@ import torch.nn as nn
 from .config_schema import Config
 
 class LeafCNN(nn.Module):
+    """A convolutional neural network with architecture based on the configuration object.
+
+    Attributes:
+        conv_blocks: Convolutional blocks (Conv2d, MaxPool2d, ReLU).
+        dense_layers: Dense layers with ReLU activation function.
+    """
     def __init__(self, cfg: Config):
         super().__init__()
         self.conv_blocks = _build_conv_blocks(cfg)
@@ -14,7 +20,15 @@ class LeafCNN(nn.Module):
         x = self.dense_layers(x)
         return x
 
-def _build_conv_blocks(cfg: Config):
+def _build_conv_blocks(cfg: Config) -> nn.Sequential:
+    """Builds convolutional blocks (Conv2d, MaxPool2d, ReLU) based on the config.
+
+    Args:
+        cfg: Configuration object.
+
+    Returns:
+        nn.Sequential: Convolutional blocks.
+    """
     conv_list = []
 
     in_channels = 1 if cfg.data.grayscale else 3
@@ -32,7 +46,16 @@ def _build_conv_blocks(cfg: Config):
 
     return nn.Sequential(*conv_list)
 
-def _build_dense_layers(cfg: Config, num_classes: int):
+def _build_dense_layers(cfg: Config, num_classes: int) -> nn.Sequential:
+    """Builds dense layers based on the config.
+
+    Args:
+        cfg: Configuration object.
+        num_classes: The number of classes to predict.
+
+    Returns:
+        nn.Sequential: Dense layers.
+    """
     dense_list = []
     dense_list.append(nn.LazyLinear(cfg.model.dense_hidden_dims[0]))
     dense_list.append(nn.ReLU())

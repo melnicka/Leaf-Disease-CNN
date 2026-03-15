@@ -1,4 +1,5 @@
 from __future__ import annotations
+from os import abort
 from pathlib import Path
 import torch
 from sklearn.model_selection import train_test_split
@@ -14,6 +15,16 @@ if TYPE_CHECKING:
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 def load_data(cfg: Config) -> tuple[DataLoader, ...]:
+    """A pipeline for creating Dataset objects and loading them into DataLoader objects.
+
+    Everything is controlled by the configuration object.
+
+    Args:
+        cfg: The configuration object.
+
+    Returns:
+        train-val-test split or train-test split. 
+    """
     if not cfg.data.grayscale:
         train_transform = v2.Compose([
             v2.Resize(cfg.data.resize),
@@ -113,7 +124,16 @@ def load_data(cfg: Config) -> tuple[DataLoader, ...]:
 
     return train_loader, val_loader, test_loader
 
-def load_inference_data(data_paths: str, cfg: Config) -> DataLoader:
+def load_inference_data(data_paths: list[str], cfg: Config) -> DataLoader:
+    """A pipeline to create prediction Dataset object and loading it into a DataLoader object.
+
+    Args:
+        data_paths: Can contain paths to files, directories, or both.
+        cfg: The same configuration object as the one used for the training. 
+
+    Returns:
+        DataLoader for making predictions.
+    """
     if not cfg.data.grayscale:
         transform = v2.Compose([
             v2.Resize(cfg.data.resize),
@@ -137,6 +157,18 @@ def load_inference_data(data_paths: str, cfg: Config) -> DataLoader:
     return DataLoader(dataset, cfg.data.batch_size, shuffle=False)
 
 def collect_samples(root_dir: str = 'data') -> tuple[list[str], list[int], list[str], dict]:
+    """Collects all data samples.
+
+    Args:
+        root_dir: Root data directory.
+
+    Returns:
+        tuple:
+            - samples: Paths to all pictures.
+            - labels: Numerical labels for all pictures. 
+            - class_names: Name of each class.
+            - class_to_idx: Class name to numerical label mapping.
+    """
     root = Path(root_dir)
     class_names = sorted([d.name for d in root.iterdir() if d.is_dir()])
     class_to_idx = {name: i for i, name in enumerate(class_names)}
@@ -153,6 +185,14 @@ def collect_samples(root_dir: str = 'data') -> tuple[list[str], list[int], list[
     return samples, labels, class_names, class_to_idx
 
 def collect_infer_samples(data_paths: list[str]) -> list[str]:
+    """Collects all samples for making predictions.
+
+    Args:
+        data_paths: Can contain paths to files, directories, or both.
+
+    Returns:
+        A list with paths to all pictures. 
+    """
     IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
     samples = []        
 
@@ -174,8 +214,23 @@ def make_splits(
         test_size: float = 0.15,
         val_size: float | None = 0.1,
         random_state: int = 2137
-) -> tuple[ArrayLike[str], ...]:
+) -> tuple[ArrayLike[str, int], ...]:
 
+    """Creates train-val-test split or train-test split.
+
+    Args:
+        samples: Paths to all pictures.
+        labels: Numerical labels for all pictures
+        test_size: The size of the test set.
+        val_size: The size og the validation set. If None, validation set will not be created.
+        random_state: Random seed number.
+
+    Returns:
+        train-val-test split or train-test-split
+
+    Raises:
+        ValueError: If the split ratio do not add up to 1.
+    """
     effective_val_size = 0.0 if val_size is None else val_size
     if 1 - test_size - effective_val_size <= 0:
         raise ValueError("Invalid train-test-split ratio.")
