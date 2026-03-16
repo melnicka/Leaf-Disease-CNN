@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from torch.utils.data import DataLoader
     from torch.utils.tensorboard import SummaryWriter
     from torch.optim.lr_scheduler import ReduceLROnPlateau
-    from numpy import _Array
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -20,6 +19,19 @@ def train_one_epoch(
         optimizer: optim.Optimizer,
         criterion: nn.Module
     ) -> tuple [float, float]:
+    """Trains one epoch.
+
+    Args:
+        model: The target classifier.
+        train_loader: Training DataLoader.
+        optimizer: Gradient-based optimizer.
+        criterion: Loss function.
+
+    Returns:
+        tuple:
+            - float: Training loss.
+            - float: Training accuracy score.
+    """
     running_loss = 0.0 
     running_correct = 0
     total_samples = 0
@@ -45,7 +57,20 @@ def eval(
         model: nn.Module,
         val_loader: DataLoader,
         criterion: nn.Module
-) -> tuple[float, float, float]:
+) -> tuple[float, float, dict]:
+    """Evaluates model on validation set during training.
+
+    Args:
+        model: The target classifier.
+        val_loader: Validation DataLoader.
+        criterion: Loss function.
+
+    Returns:
+        tuple:
+        - float: Validation loss.
+        - float: Validation accuracy score.
+        - dict: Validation F1 score.
+    """
     y_true, y_pred = [], []
     running_val_loss = 0.0
     model.eval()
@@ -79,6 +104,18 @@ def train(
         scheduler: ReduceLROnPlateau,
         writer: SummaryWriter
 ):
+    """Trains the model and logs the process into a tensorboard.
+
+    Args:
+        cfg: Configuration object.
+        model: The target classifier.
+        train_loader: Training DataLoader
+        val_loader: Validation DataLoader
+        optimizer: Gradient-based optimizer.
+        criterion: Loss function.
+        scheduler: Learning rate scheduler.
+        writer: Tensorboard writer.
+    """
     step = 0
     for epoch in range(cfg.train.num_epochs):
         print(f"\n====== Training epoch {epoch}... ======")
@@ -109,7 +146,20 @@ def train(
 def score(
         model: nn.Module,
         test_loader: DataLoader,
-) -> tuple[float, dict, dict, dict, _Array]:
+) -> tuple[float, dict, dict, dict]:
+    """Evaluates the model on the final test set.
+
+    Args:
+        model: The classifier to score.
+        test_loader: Test DataLoader.
+
+    Returns:
+        tuple:
+        - float: Accuracy score.
+        - dict: Precision score for each class.
+        - dict: Recall score for each class.
+        - dict: F1 score for each class.
+    """
     y_true, y_pred = [], []
     model.eval()
     with torch.no_grad():
@@ -139,7 +189,16 @@ def score(
 
     return accuracy, precision, recall, f1
 
-def predict(model: nn.Module, pred_loader: DataLoader):
+def predict(model: nn.Module, pred_loader: DataLoader) -> list:
+    """Makes predictions.
+
+    Args:
+        model: A classifier for making predictions.
+        pred_loader: DataLoader with predictions data (no labels).
+
+    Returns:
+        y_pred: The list of predicted classes.
+    """
     y_pred = []
     model.eval()
     with torch.no_grad():

@@ -10,6 +10,19 @@ from omegaconf import OmegaConf
 from .config_schema import Config
 
 def train_model(name: str, cfg: Config):
+    """Train a model and save all artifacts for the run.
+
+    Creates a directory ``runs/<name>/`` containing:
+        - ``<name>.pth`` — model state dictionary
+        - ``<name>.yaml`` — configuration used for training
+        - ``eval_metrics.json`` — metrics from the final evaluation on the test set
+
+    TensorBoard logs are written to ``runs/tensorboards/<name>/``.
+
+    Args:
+        name: Experiment name. Also used as the model filename prefix.
+        cfg: Training configuration.
+    """
     set_random_state(cfg)
     train_loader, val_loader, test_loader = load_data(cfg)
     writer = SummaryWriter(f"runs/tensorboards/{name}")
@@ -47,6 +60,30 @@ def make_predictions(
         data_paths: list[str],
         root_dir='runs'
 ) -> list[str]:
+    """Load a trained model and generate predictions for input images.
+
+    The function expects a trained model stored in ``<root_dir>/<model_name>/``.
+    The directory must contain:
+        - ``<model_name>.pth`` — model state dictionary
+        - ``<model_name>.yaml`` — configuration used during training
+
+    The configuration file is loaded to reconstruct the model architecture
+    and preprocessing pipeline before running inference.
+
+    Args:
+        model_name: Name of the trained model (experiment name).
+        data_paths: List of image files or directories containing images
+            for which predictions should be generated.
+        root_dir: Directory containing saved training runs
+            (default: ``runs``).
+
+    Returns:
+        list[str]: Predicted class labels for the provided inputs.
+
+    Raises:
+        ValueError: If the model directory, model file, or configuration
+            file cannot be found.
+    """
     root_path = Path(root_dir) / model_name
     if not root_path.exists():
         raise ValueError("This root directory path does not exist")

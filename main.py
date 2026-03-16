@@ -11,9 +11,9 @@ if __name__ == '__main__':
 
     elif args.command == 'predict':
         preds = make_predictions(
-                args.model_name,
+                args.name,
                 args.input_data,
-                args.root_dir
+                args.base_dir
         )
 
         if args.save:
@@ -26,4 +26,4 @@ if __name__ == '__main__':
 
         
 
-
+ 
