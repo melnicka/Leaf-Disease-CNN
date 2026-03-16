@@ -23,8 +23,13 @@ def parse_args() -> argparse.Namespace:
             nargs="+",
             help="YAML config files. Uses base.yaml config by default."
             )
+    train_parser.add_argument(
+            "--root_dir", "-r",
+            default="configs",
+            help="Change the directory where config files will be searched."
+            )
 
-    pred_parser.add_argument("model_name", help="Trained model name.")
+    pred_parser.add_argument("model_name", help="Name of the trained model.")
     pred_parser.add_argument(
             "input_data",
             nargs="+",

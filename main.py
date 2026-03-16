@@ -5,7 +5,8 @@ if __name__ == '__main__':
     args = parse_args()
 
     if args.command == 'train':
-        cfg = load_config(args.config)
+        conf_list = [f"{args.root_dir}/{conf}" for conf in args.config]
+        cfg = load_config(conf_list)
         train_model(args.name, cfg)
 
     elif args.command == 'predict':
@@ -14,11 +15,13 @@ if __name__ == '__main__':
                 args.input_data,
                 args.root_dir
         )
+
+        if args.save:
+            with open(args.save, "w") as f:
+                f.write(str(preds))
+        
         print(preds)
 
-    if args.save:
-        with open(args.save, "w") as f:
-            f.write(str(preds))
 
 
         
