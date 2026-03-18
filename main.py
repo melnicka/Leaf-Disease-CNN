@@ -4,12 +4,12 @@ from src.builder import train_model, make_predictions
 if __name__ == '__main__':
     args = parse_args()
 
-    if args.command == 'train':
-        conf_list = [f"{args.root_dir}/{conf}" for conf in args.config]
+    if args.commands == 'train':
+        conf_list = [f"{args.base_dir}/{conf}" for conf in args.config]
         cfg = load_config(conf_list)
         train_model(args.name, cfg)
 
-    elif args.command == 'predict':
+    elif args.commands == 'predict':
         preds = make_predictions(
                 args.name,
                 args.input_data,

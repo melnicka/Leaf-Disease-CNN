@@ -15,7 +15,7 @@ model:
   pool_kernel_size: 2
 
 train:
-  num_epochs: 100
+  num_epochs: 80
   lr: 0.001
   scheduler_patience: 4
   class_weights:
