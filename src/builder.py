@@ -40,7 +40,7 @@ def train_model(name: str, cfg: Config):
             writer
     ) 
     dir_path = Path("runs") / name
-    dir_path.mkdir(exist_ok=True)
+    dir_path.mkdir(exist_ok=True, parents=True)
     model_path = dir_path / f"{name}.pth"
     torch.save(model.state_dict(), model_path)
     accuracy, precision, recall, f1 = score(model, test_loader)

@@ -66,6 +66,7 @@ def _build_dense_layers(cfg: Config, num_classes: int) -> nn.Sequential:
         dense_list.append(nn.ReLU())
         in_features = out_features
 
+    dense_list.append(nn.Dropout(cfg.model.dropout_rate))
     dense_list.append(nn.Linear(in_features, num_classes))
 
     return nn.Sequential(*dense_list)

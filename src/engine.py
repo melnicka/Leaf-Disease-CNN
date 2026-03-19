@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import TYPE_CHECKING
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
+from .callbacks import EarlyStopping
 
 if TYPE_CHECKING:
     from config_schema import Config
@@ -117,6 +118,10 @@ def train(
         writer: Tensorboard writer.
     """
     step = 0
+    early_stopping = EarlyStopping(
+            cfg.train.early_stopping_patience,
+            cfg.train.early_stopping_min_delta
+    )
     for epoch in range(cfg.train.num_epochs):
         print(f"\n====== Training epoch {epoch}... ======")
         print(f"Current learning rate: {scheduler.get_last_lr()}")
@@ -140,8 +145,11 @@ def train(
         writer.add_scalar('train/accuracy', train_acc, step)
         writer.add_scalar('val/loss', val_loss, step)
         writer.add_scalar('val/accuracy', val_acc, step)
-        writer.add_scalars('val/f1', val_f1), step
+        writer.add_scalars('val/f1', val_f1, step)
         step += 1
+        
+        if early_stopping(val_loss, model):
+            break
 
 def score(
         model: nn.Module,
@@ -180,8 +188,9 @@ def score(
     precision = {idx_to_class[i]: score for i, score in enumerate(precision)}
     recall = {idx_to_class[i]: score for i, score in enumerate(recall)}
 
+    print(f"\nAccuracy: {accuracy_score:.2f}")
     f1_fmt = {k: f"{v:.4f}" for k, v in f1.items()}
-    print(f"Validation F1 score: {f1_fmt}")
+    print(f"F1 score: {f1_fmt}")
     precision_fmt = {k: f"{v:.4f}" for k, v in precision.items()}
     print(f"Precision score: {precision_fmt}")
     recall_fmt = {k: f"{v:.4f}" for k, v in recall.items()}

@@ -35,6 +35,7 @@ class ModelConfig:
     dense_hidden_dims: tuple[int, ...] = (512, 256, 64)
     conv_kernel_size: int = 3 
     pool_kernel_size: int = 2
+    dropout_rate: float = 0.3
 
 @dataclass
 class TrainingConfig:
@@ -48,7 +49,9 @@ class TrainingConfig:
     """
     num_epochs: int = 30
     lr: float = 0.001
-    scheduler_patience: int = 4
+    scheduler_patience: int = 5
+    early_stopping_patience: int = 10
+    early_stopping_min_delta: float = 0.0
     class_weights: list[float] = field(
         default_factory=lambda: [
             0.0602,
@@ -61,7 +64,7 @@ class TrainingConfig:
         ]
     )
 
-@dataclass
+@dataclass 
 class Config:
     """The complete configuration class.
 
