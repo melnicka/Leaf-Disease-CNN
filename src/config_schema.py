@@ -11,6 +11,7 @@ class DataConfig:
         resize: Shape of transformed images.
         batch_size: Batch size for data loaders.
         grayscale: Whether to convert images to grayscale.
+        class_weights: if true, calculate class weights to account for class imbalances.
     """
     root_dir: str = 'data'
     val_size: float | None = 0.1
@@ -18,6 +19,8 @@ class DataConfig:
     resize: tuple[int, int] = (128, 128)
     batch_size: int = 32
     grayscale: bool = False
+    num_classes: int = 7
+    class_weights: bool = True
 
 @dataclass
 class ModelConfig:
@@ -45,24 +48,12 @@ class TrainingConfig:
         num_epochs: The number of training epochs.
         lr: Learning rate.
         scheduler_patience: The patience of ReduceLROnPlateau scheduler.
-        class_weights: Weights for each class, to account for class imbalances.
     """
     num_epochs: int = 30
     lr: float = 0.001
     scheduler_patience: int = 5
     early_stopping_patience: int = 10
     early_stopping_min_delta: float = 0.0
-    class_weights: list[float] = field(
-        default_factory=lambda: [
-            0.0602,
-            0.0458,
-            0.1705,
-            0.5041,
-            0.0561,
-            0.0988,
-            0.0644,
-        ]
-    )
 
 @dataclass 
 class Config:

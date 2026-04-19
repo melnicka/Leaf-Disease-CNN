@@ -1,5 +1,4 @@
 from __future__ import annotations
-from os import abort
 from pathlib import Path
 import torch
 from sklearn.model_selection import train_test_split
@@ -14,8 +13,8 @@ if TYPE_CHECKING:
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
-def load_data(cfg: Config) -> tuple[DataLoader, ...]:
-    """A pipeline for creating Dataset objects and loading them into DataLoader objects.
+def get_datasets(cfg: Config,) -> tuple[LeafImageDataset, ...]:
+    """A pipeline for creating Dataset objects.
 
     Everything is controlled by the configuration object.
 
@@ -89,11 +88,6 @@ def load_data(cfg: Config) -> tuple[DataLoader, ...]:
                 class_to_idx,
                 eval_transform
         )
-        val_loader = DataLoader(
-                val_dataset,
-                cfg.data.batch_size,
-                shuffle=False
-        )
     train_dataset = LeafImageDataset(
             X_train,
             y_train,
@@ -108,21 +102,12 @@ def load_data(cfg: Config) -> tuple[DataLoader, ...]:
             class_to_idx,
             eval_transform
     )
-    train_loader = DataLoader(
-            train_dataset,
-            cfg.data.batch_size,
-            shuffle=True,
-    )
-    test_loader = DataLoader(
-            test_dataset,
-            cfg.data.batch_size,
-            shuffle=False
-    )
 
     if cfg.data.val_size is None:
-        return train_loader, test_loader
+        return train_dataset, test_dataset
 
-    return train_loader, val_loader, test_loader
+    return train_dataset, val_dataset, test_dataset
+
 
 def load_inference_data(data_paths: list[str], cfg: Config) -> DataLoader:
     """A pipeline to create prediction Dataset object and loading it into a DataLoader object.

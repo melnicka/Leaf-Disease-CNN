@@ -188,7 +188,7 @@ def score(
     precision = {idx_to_class[i]: score for i, score in enumerate(precision)}
     recall = {idx_to_class[i]: score for i, score in enumerate(recall)}
 
-    print(f"\nAccuracy: {accuracy_score:.2f}")
+    print(f"\nAccuracy: {accuracy:.2f}")
     f1_fmt = {k: f"{v:.4f}" for k, v in f1.items()}
     print(f"F1 score: {f1_fmt}")
     precision_fmt = {k: f"{v:.4f}" for k, v in precision.items()}
@@ -215,8 +215,6 @@ def predict(model: nn.Module, pred_loader: DataLoader) -> list:
             preds = model(x_batch.to(DEVICE))
             preds = torch.argmax(preds, dim=1)
             y_pred.extend(preds.cpu().tolist())
-
-    
 
     return y_pred
 

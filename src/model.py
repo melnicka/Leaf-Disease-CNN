@@ -12,7 +12,7 @@ class LeafCNN(nn.Module):
     def __init__(self, cfg: Config):
         super().__init__()
         self.conv_blocks = _build_conv_blocks(cfg)
-        self.dense_layers= _build_dense_layers(cfg, num_classes=7)
+        self.dense_layers= _build_dense_layers(cfg)
 
     def forward(self, x):
         x = self.conv_blocks(x)
@@ -46,12 +46,11 @@ def _build_conv_blocks(cfg: Config) -> nn.Sequential:
 
     return nn.Sequential(*conv_list)
 
-def _build_dense_layers(cfg: Config, num_classes: int) -> nn.Sequential:
+def _build_dense_layers(cfg: Config) -> nn.Sequential:
     """Builds dense layers based on the config.
 
     Args:
         cfg: Configuration object.
-        num_classes: The number of classes to predict.
 
     Returns:
         nn.Sequential: Dense layers.
@@ -59,6 +58,7 @@ def _build_dense_layers(cfg: Config, num_classes: int) -> nn.Sequential:
     dense_list = []
     dense_list.append(nn.LazyLinear(cfg.model.dense_hidden_dims[0]))
     dense_list.append(nn.ReLU())
+    dense_list.append(nn.Dropout(cfg.model.dropout_rate))
 
     in_features = cfg.model.dense_hidden_dims[0]
     for out_features in cfg.model.dense_hidden_dims[1:]:
@@ -67,7 +67,7 @@ def _build_dense_layers(cfg: Config, num_classes: int) -> nn.Sequential:
         in_features = out_features
 
     dense_list.append(nn.Dropout(cfg.model.dropout_rate))
-    dense_list.append(nn.Linear(in_features, num_classes))
+    dense_list.append(nn.Linear(in_features, cfg.data.num_classes))
 
     return nn.Sequential(*dense_list)
 

@@ -2,9 +2,9 @@ import numpy as np
 import torch
 import random
 import argparse
-from collections import Counter
 from .model import LeafCNN
 from torch.optim import AdamW
+from .dataset import LeafImageDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.nn import CrossEntropyLoss
 from omegaconf import OmegaConf
@@ -40,7 +40,8 @@ def parse_args() -> argparse.Namespace:
             "Config paths are resolved relative to a configurable base "
             "directory."
         )
-            )
+    )
+
     pred_parser = subparsers.add_parser(
         "predict",
         help="Run inference using a trained model.",
@@ -120,11 +121,12 @@ def load_config(yaml_cfg_paths: list[str], base: str = "configs/base.yaml") -> C
 
     return OmegaConf.to_object(cfg)
 
-def training_setup(cfg: Config) -> tuple[LeafCNN, AdamW, CrossEntropyLoss, ReduceLROnPlateau]:
+def training_setup(cfg: Config, dataset: LeafImageDataset) -> tuple[LeafCNN, AdamW, CrossEntropyLoss, ReduceLROnPlateau]:
     """A helper function to quickly get necessary training objects.
 
     Args:
         cfg: A configuration object.
+        dataset: A target dataset object.
 
     Returns:
         tuple:
@@ -137,8 +139,10 @@ def training_setup(cfg: Config) -> tuple[LeafCNN, AdamW, CrossEntropyLoss, Reduc
     model = LeafCNN(cfg)
     optimizer = AdamW(model.parameters(), cfg.train.lr)
     scheduler = ReduceLROnPlateau(optimizer, patience=cfg.train.scheduler_patience)
-    class_weights = torch.tensor(cfg.train.class_weights)
-    criterion = CrossEntropyLoss(weight=class_weights)
+    if cfg.data.class_weights:
+        criterion = CrossEntropyLoss(weight=dataset.weights)
+    else:
+        criterion = CrossEntropyLoss()
 
     return model, optimizer, criterion, scheduler
 
@@ -153,26 +157,4 @@ def set_random_state(cfg: Config):
     torch.manual_seed(cfg.random_state)
     torch.cuda.manual_seed_all(cfg.random_state)
 
-def calculate_class_weights(labels: list[int]) -> list[float]:
-    """Calculates the weights for the loss funtion to account for class imbalance.
-
-    Args:
-        labels: A list of numeric class labels for all of the samples.
-
-    Returns:
-        A list of weights.
-    """
-    weights = []
-    counter = Counter(labels)
-    weight_sum = 0.0
-    total_samples = sum(counter.values())
-    print(sorted(counter))
-    for label in sorted(counter):
-        weight = total_samples / (7.0 * counter[label])
-        weights.append(weight)
-        weight_sum += weight
-
-    weights = [float(np.round(w / weight_sum, 4)) for w in weights]
-
-    return weights
 

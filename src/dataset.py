@@ -1,6 +1,9 @@
 from __future__ import annotations
 from PIL import Image
+import numpy as np
+import torch
 from torch.utils.data import Dataset
+from collections import Counter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -22,6 +25,7 @@ class LeafImageDataset(Dataset):
         self.class_to_idx = class_to_idx
         self.idx_to_class = {i:c for c, i in class_to_idx.items()}
         self.transform = transform
+        self.weights = None
     
     def __len__(self):
         return len(self.samples)
@@ -34,6 +38,22 @@ class LeafImageDataset(Dataset):
             image = self.transform(image)
 
         return image, label
+
+    def calc_class_weights(self):
+        weights = []
+        counter = Counter(self.labels)
+        weight_sum = 0.0
+        total_samples = sum(counter.values())
+        print(sorted(counter))
+        for label in sorted(counter):
+            weight = total_samples / (7.0 * counter[label])
+            weights.append(weight)
+            weight_sum += weight
+
+        weights = [float(np.round(w / weight_sum, 4)) for w in weights]
+
+        self.weights = torch.tensor(weights)
+
 
 class LeafInferDataset():
     def __init__(self, samples: ArrayLike, transform=None):

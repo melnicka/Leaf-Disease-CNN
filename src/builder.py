@@ -1,10 +1,11 @@
 from pathlib import Path
 import torch
 import json
+from torch.utils.data import DataLoader
 from .engine import train, score, predict, DEVICE
 from .utils import training_setup, set_random_state, load_config
 from .model import LeafCNN
-from .dataloading import load_data, load_inference_data
+from .dataloading import get_datasets, load_inference_data
 from torch.utils.tensorboard import SummaryWriter
 from omegaconf import OmegaConf
 from .config_schema import Config
@@ -24,9 +25,13 @@ def train_model(name: str, cfg: Config):
         cfg: Training configuration.
     """
     set_random_state(cfg)
-    train_loader, val_loader, test_loader = load_data(cfg)
+    train_dataset, val_dataset, test_dataset = get_datasets(cfg)
+    train_loader = DataLoader(train_dataset, cfg.data.batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, cfg.data.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, cfg.data.batch_size, shuffle=True)
+    
     writer = SummaryWriter(f"runs/tensorboards/{name}")
-    model, optimizer, criterion, scheduler = training_setup(cfg)
+    model, optimizer, criterion, scheduler = training_setup(cfg, train_dataset)
     model.to(DEVICE)
 
     train(
